@@ -129,10 +129,10 @@ def handle_start(chat_id):
         [{"text": f"📚 {c['name']} ({c['amount']:,} تومان)", "callback_data": f"course_{k}"}]
         for k, c in COURSES.items()
     ]}
-    deadline_lines = "\n".join(f"🔸 {c['name']}: <b>تا {c['deadline']}</b>" for c in COURSES.values())
+    deadline_lines = "\n".join(f"🔸 {c['name']}: تا {c['deadline']}" for c in COURSES.values())
     send_message(chat_id,
         "سلام! 👋\nبه بات جمع‌آوری واریزی خوش اومدی.\nاول جزوه‌ای که می‌خوای رو انتخاب کن:\n\n"
-        f"⏳ <b>مهلت واریز:</b>\n{deadline_lines}\n\n⚠️ بعد از مهلت تعیین‌شده، امکان واریز وجود نداره!",
+        f"⏳ مهلت واریز:\n{deadline_lines}\n\n⚠️ بعد از مهلت تعیین‌شده، امکان واریز وجود نداره!",
         kb)
 
 def handle_course_cb(chat_id, msg_id, cb_id, key, user_id):
@@ -142,7 +142,7 @@ def handle_course_cb(chat_id, msg_id, cb_id, key, user_id):
     course = COURSES[key]
     user_state[chat_id] = {"course": key, "course_name": course["name"], "amount": course["amount"], "stage": "name"}
     edit_caption(chat_id, msg_id,
-        f"📚 {course['name']} انتخاب شد!\n\n✍️ حالا <b>نام و نام خانوادگی</b> خودت رو به صورت کامل بفرست.\n(مثلاً: علی کلماتی)")
+        f"📚 {course['name']} انتخاب شد!\n\n✍️ حالا نام و نام خانوادگی خودت رو به صورت کامل بفرست.\n(مثلاً: علی کلماتی)")
     answer_cb(cb_id)
 
 def handle_name(chat_id, text):
@@ -158,9 +158,9 @@ def handle_name(chat_id, text):
     send_message(chat_id,
         f"👤 {st['name']} عزیز، ثبت شد!\n\n📚 درس: {st['course_name']}\n"
         f"💳 برای پرداخت مبلغ {st['amount']:,} تومان، به کارت زیر واریز کن:\n\n"
-        f"<code>{CARD_NUMBER}</code>\nبه نام: <b>{CARD_HOLDER}</b>\n\n"
-        f"📸 حالا <b>عکس رسید واریزی</b> رو بفرست.\n\n"
-        f"⚠️ <b>توجه:</b> بهتره عکس رسید رو <b>بلافاصله بعد از واریز</b> بفرستی تا زمان دقیق واریز ثبت بشه!")
+        f"💳 {CARD_NUMBER}\nبه نام: {CARD_HOLDER}\n\n"
+        f"📸 حالا عکس رسید واریزی رو بفرست.\n\n"
+        f"⚠️ توجه: بهتره عکس رسید رو بلافاصله بعد از واریز بفرستی تا زمان دقیق واریز ثبت بشه!")
 
 def handle_receipt(chat_id, file_id):
     st = user_state.get(chat_id)
@@ -178,7 +178,7 @@ def handle_receipt(chat_id, file_id):
         {"text": "✅ تایید", "callback_data": f"approve:{chat_id}"},
         {"text": "❌ رد", "callback_data": f"reject:{chat_id}"},
     ]]}
-    caption = (f"🆕 <b>واریزی جدید منتظر تایید</b>\n\n📚 درس: {st['course_name']}\n"
+    caption = (f"🆕 واریزی جدید منتظر تایید\n\n📚 درس: {st['course_name']}\n"
         f"👤 نام: {st['name']}\n💵 مبلغ: {st['amount']:,} تومان\n📅 تاریخ: {date_str}\n"
         f"⏰ ساعت: {time_str}\n🆔 بله: {chat_id}"
         + (f"\n🖼️ لینک رسید: {image_url}" if image_url else "\n⚠️ آپلود رسید ناموفق بود"))
@@ -190,7 +190,7 @@ def handle_receipt(chat_id, file_id):
             "name": st["name"], "course": st["course_name"],
             "amount": st["amount"], "image": image_url,
         }
-    send_message(chat_id, "✅ رسید دریافت شد!\n\n⏳ <b>در حال بررسی توسط ادمین...</b>\nبعد از تایید، پیام نهایی بهت می‌رسه. صبر کن 🙏")
+    send_message(chat_id, "✅ رسید دریافت شد!\n\n⏳ در حال بررسی توسط ادمین...\nبعد از تایید، پیام نهایی بهت می‌رسه. صبر کن 🙏")
     user_state.pop(chat_id, None)
 
 def handle_admin_cb(chat_id, msg_id, cb_id, data, from_id):
@@ -210,12 +210,12 @@ def handle_admin_cb(chat_id, msg_id, cb_id, data, from_id):
     if action == "approve":
         date_str, time_str = persian_now()
         ok = save_to_d1(name, course_name, amount, date_str, time_str, int(target), image_url)
-        status = "✅ <b>تایید شد!</b>" if ok else "❌ <b>خطا در ذخیره!</b>"
+        status = "✅ تایید شد!" if ok else "❌ خطا در ذخیره!"
         edit_caption(chat_id, msg_id, f"🆕 واریزی جدید منتظر تایید\n📚 درس: {course_name}\n👤 نام: {name}\n💵 مبلغ: {amount:,} تومان\n\n{status}")
         if ok:
-            send_message(int(target), f"✅ <b>واریزی شما تایید شد!</b>\n\n📚 درس: {course_name}\n👤 {name}\n💵 مبلغ: {amount:,} تومان\n\n🙏 ممنون، همه‌چی ثبت شد.")
+            send_message(int(target), f"✅ واریزی شما تایید شد!\n\n📚 درس: {course_name}\n👤 {name}\n💵 مبلغ: {amount:,} تومان\n\n🙏 ممنون، همه‌چی ثبت شد.")
     elif action == "reject":
-        edit_caption(chat_id, msg_id, f"🆕 واریزی جدید منتظر تایید\n📚 درس: {course_name}\n👤 نام: {name}\n\n❌ <b>رد شد</b>")
+        edit_caption(chat_id, msg_id, f"🆕 واریزی جدید منتظر تایید\n📚 درس: {course_name}\n👤 نام: {name}\n\n❌ رد شد")
         send_message(int(target), "❌ متأسفانه واریزی شما تایید نشد.\nلطفاً دوباره /start بزن و با دقت اطلاعات رو بفرست.")
     PENDING.pop(msg_id, None)
 
