@@ -43,8 +43,13 @@ def send_photo(chat_id, file_id, caption="", kb=None, parse_mode="HTML"):
     if kb: p["reply_markup"] = kb
     return api_call("sendPhoto", p)
 
-def edit_caption(chat_id, message_id, caption, kb=None, parse_mode="HTML"):
-    p = {"chat_id": chat_id, "message_id": message_id, "caption": caption, "parse_mode": parse_mode}
+def edit_message(chat_id, message_id, text, kb=None):
+    p = {"chat_id": chat_id, "message_id": message_id, "text": text}
+    if kb: p["reply_markup"] = kb
+    return api_call("editMessageText", p)
+
+def edit_caption(chat_id, message_id, caption, kb=None):
+    p = {"chat_id": chat_id, "message_id": message_id, "caption": caption}
     if kb: p["reply_markup"] = kb
     return api_call("editMessageCaption", p)
 
@@ -141,7 +146,7 @@ def handle_course_cb(chat_id, msg_id, cb_id, key, user_id):
         return
     course = COURSES[key]
     user_state[chat_id] = {"course": key, "course_name": course["name"], "amount": course["amount"], "stage": "name"}
-    edit_caption(chat_id, msg_id,
+    edit_message(chat_id, msg_id,
         f"📚 {course['name']} انتخاب شد!\n\n✍️ حالا نام و نام خانوادگی خودت رو به صورت کامل بفرست.\n(مثلاً: علی کلماتی)")
     answer_cb(cb_id)
 
