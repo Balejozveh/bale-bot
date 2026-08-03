@@ -107,13 +107,13 @@ def download_file(file_path):
         return None
 
 # ===== D1 =====
-def save_to_d1(name, course_name, amount, date, time, tg_id, image_url=None):
+def save_to_d1(name, course_name, amount, date, time, bale_id, image_url=None):
     safe_name = name.replace("'", "''")
     img = f"'{image_url.replace(chr(39), chr(39)+chr(39))}'" if image_url else "NULL"
-    tg = f"'{str(tg_id).replace(chr(39), chr(39)+chr(39))}'" if tg_id is not None else "NULL"
-    sql = ("INSERT INTO payments (name, amount, date, time, image_url, course, tg_id) "
+    bale = f"'{str(bale_id).replace(chr(39), chr(39)+chr(39))}'" if bale_id is not None else "NULL"
+    sql = ("INSERT INTO payments (name, amount, date, time, image_url, course, tg_id, bale_id) "
            f"VALUES ('{safe_name}', {amount}, '{date}', '{time}', {img}, "
-           f"'{course_name.replace(chr(39), chr(39)+chr(39))}', {tg})")
+           f"'{course_name.replace(chr(39), chr(39)+chr(39))}', NULL, {bale})")
     payload = json.dumps({"sql": sql}).encode()
     url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT}/d1/database/{CF_DB}/raw"
     req = urllib.request.Request(url, data=payload, headers={
