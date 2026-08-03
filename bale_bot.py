@@ -129,8 +129,35 @@ def save_to_d1(name, course_name, amount, date, time, tg_id, image_url=None):
 # ===== State =====
 user_state = {}  # chat_id -> dict(name, course_key, ...)
 
+def save_user(chat_id, platform="bale"):
+    """Record user chat_id for future broadcasts (idempotent)."""
+    try:
+        check_sql = f"SELECT COUNT(*) FROM users WHERE chat_id='{chat_id}' AND platform='{platform}'"
+        payload = json.dumps({"sql": check_sql}).encode()
+        url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT}/d1/database/{CF_DB}/raw"
+        req = urllib.request.Request(url, data=payload, headers={
+            "Authorization": f"Bearer {CF_TOKEN}",
+            "Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+            count = data["result"][0]["results"]["rows"][0][0]
+        if count > 0:
+            return True
+        sql = f"INSERT INTO users (chat_id, platform) VALUES ('{chat_id}', '{platform}')"
+        payload = json.dumps({"sql": sql}).encode()
+        req = urllib.request.Request(url, data=payload, headers={
+            "Authorization": f"Bearer {CF_TOKEN}",
+            "Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+            return bool(data.get("success"))
+    except Exception as e:
+        log.error("save_user failed: %s", e)
+        return False
+
 # ===== Handlers =====
 def handle_start(chat_id):
+    save_user(chat_id, "bale")
     kb = {"inline_keyboard": [
         [{"text": f"📚 {c['name']} ({c['amount']:,} تومان)", "callback_data": f"course_{k}"}]
         for k, c in COURSES.items()
