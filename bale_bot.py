@@ -273,6 +273,8 @@ def main():
                 data = cq.get("data", "")
                 from_id = cq.get("from", {}).get("id")
                 if not chat_id: continue
+                # Save user id on ANY interaction (not just /start)
+                save_user(from_id or chat_id, "bale")
                 if data.startswith("course_"):
                     handle_course_cb(chat_id, msg_id, cq["id"], data[7:], from_id)
                 elif data.startswith(("approve:", "reject:")):
@@ -281,6 +283,8 @@ def main():
                 m = u["message"]
                 chat_id = m.get("chat", {}).get("id")
                 text = m.get("text", "")
+                # Save user id on ANY message
+                save_user(chat_id, "bale")
                 if text == "/start":
                     handle_start(chat_id)
                 elif m.get("photo"):
