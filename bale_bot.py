@@ -106,82 +106,52 @@ def download_file(file_path):
         log.error("Download failed: %s", e)
         return None
 
-# ===== Neon (PostgreSQL) =====
-DATABASE_URL = os.environ.get("DATABASE_URL", "")
-
-def _neon_conn():
-    import psycopg2
-    return psycopg2.connect(DATABASE_URL)
-
-def backup_to_github():
-    """Push current payments JSON to GitHub as automatic backup."""
-    if not GH_TOKEN:
-        return
+# ===== D1 =====
+def save_to_d1(name, course_name, amount, date, time, bale_id, image_url=None):
+    safe_name = name.replace("'", "''")
+    img = f"'{image_url.replace(chr(39), chr(39)+chr(39))}'" if image_url else "NULL"
+    bale = f"'{str(bale_id).replace(chr(39), chr(39)+chr(39))}'" if bale_id is not None else "NULL"
+    sql = ("INSERT INTO payments (name, amount, date, time, image_url, course, tg_id, bale_id) "
+           f"VALUES ('{safe_name}', {amount}, '{date}', '{time}', {img}, "
+           f"'{course_name.replace(chr(39), chr(39)+chr(39))}', NULL, {bale})")
+    payload = json.dumps({"sql": sql}).encode()
+    url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT}/d1/database/{CF_DB}/raw"
+    req = urllib.request.Request(url, data=payload, headers={
+        "Authorization": f"Bearer {CF_TOKEN}",
+        "Content-Type": "application/json"}, method="POST")
     try:
-        conn = _neon_conn()
-        cur = conn.cursor(cursor_factory=__import__("psycopg2.extras", fromlist=["RealDictCursor"]).RealDictCursor)
-        cur.execute("SELECT * FROM payments ORDER BY id")
-        rows = cur.fetchall()
-        conn.close()
-        content = base64.b64encode(json.dumps([dict(r) for r in rows], ensure_ascii=False, default=str).encode()).decode()
-        url = f"https://api.github.com/repos/{GH_REPO}/contents/backup_neon.json"
-        # Get current sha first (required for updating existing file)
-        try:
-            req = urllib.request.Request(url, headers={"Authorization": f"Bearer {GH_TOKEN}"})
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                d = json.loads(resp.read())
-            sha = d.get("sha")
-        except Exception:
-            sha = None
-        payload = {
-            "message": f"auto-backup {int(time.time())}",
-            "content": content,
-            "branch": "main",
-        }
-        if sha:
-            payload["sha"] = sha
-        req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers={
-            "Authorization": f"Bearer {GH_TOKEN}",
-            "Accept": "application/vnd.github.v3+json",
-            "Content-Type": "application/json"}, method="PUT")
         with urllib.request.urlopen(req, timeout=25) as resp:
             d = json.loads(resp.read())
-        log.info("GitHub backup OK: %s", d.get("content", {}).get("path", ""))
+            return bool(d.get("success"))
     except Exception as e:
-        log.error("GitHub backup failed: %s", e)
-
-def save_to_d1(name, course_name, amount, date, time, bale_id, image_url=None):
-    """Insert a payment into Neon (PostgreSQL) instead of Cloudflare D1."""
-    try:
-        conn = _neon_conn()
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO payments (name, amount, date, time, image_url, course, tg_id, bale_id)
-            VALUES (%s, %s, %s, %s, %s, %s, NULL, %s)
-        """, (name, amount, date, time, image_url or None, course_name, str(bale_id) if bale_id is not None else None))
-        conn.commit()
-        conn.close()
-        backup_to_github()
-        return True
-    except Exception as e:
-        log.error("Neon save failed: %s", e)
+        log.error("D1 save failed: %s", e)
         return False
 
 # ===== State =====
 user_state = {}  # chat_id -> dict(name, course_key, ...)
 
 def save_user(chat_id, platform="bale"):
-    """Record user chat_id for future broadcasts (idempotent) — Neon."""
+    """Record user chat_id for future broadcasts (idempotent)."""
     try:
-        conn = _neon_conn()
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO users (chat_id, platform) VALUES (%s, %s)
-            ON CONFLICT (chat_id) DO NOTHING
-        """, (str(chat_id), platform))
-        conn.commit()
-        conn.close()
-        return True
+        check_sql = f"SELECT COUNT(*) FROM users WHERE chat_id='{chat_id}' AND platform='{platform}'"
+        payload = json.dumps({"sql": check_sql}).encode()
+        url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT}/d1/database/{CF_DB}/raw"
+        req = urllib.request.Request(url, data=payload, headers={
+            "Authorization": f"Bearer {CF_TOKEN}",
+            "Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+            count = data["result"][0]["results"]["rows"][0][0]
+        if count > 0:
+            return True
+        sql = f"INSERT INTO users (chat_id, platform) VALUES ('{chat_id}', '{platform}')"
+        payload = json.dumps({"sql": sql}).encode()
+        req = urllib.request.Request(url, data=payload, headers={
+            "Authorization": f"Bearer {CF_TOKEN}",
+            "Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+            return bool(data.get("success"))
     except Exception as e:
         log.error("save_user failed: %s", e)
         return False
@@ -189,12 +159,15 @@ def save_user(chat_id, platform="bale"):
 # ===== Handlers =====
 def handle_start(chat_id):
     save_user(chat_id, "bale")
+    kb = {"inline_keyboard": [
+        [{"text": f"📚 {c['name']} ({c['amount']:,} تومان)", "callback_data": f"course_{k}"}]
+        for k, c in COURSES.items()
+    ]}
+    deadline_lines = "\n".join(f"🔸 {c['name']}: تا {c['deadline']}" for c in COURSES.values())
     send_message(chat_id,
-        "⚠️ سیستم موقتاً از کار افتاده\n\n"
-        "به دلیل بروزرسانی زیرساخت، امکان ثبت واریزی وجود ندارد.\n"
-        "لطفاً بعداً امتحان کنید. 🙏\n\n"
-        "ما در حال رفع مشکل هستیم.",
-        None)
+        "سلام! 👋\nبه بات جمع‌آوری واریزی خوش اومدی.\nاول جزوه‌ای که می‌خوای رو انتخاب کن:\n\n"
+        f"⏳ مهلت واریز:\n{deadline_lines}\n\n⚠️ بعد از مهلت تعیین‌شده، امکان واریز وجود نداره!",
+        kb)
 
 def handle_course_cb(chat_id, msg_id, cb_id, key, user_id):
     if key not in COURSES:
