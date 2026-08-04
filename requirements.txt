@@ -1,1 +1,2 @@
 # Bale bot uses only stdlib — no external deps needed
+psycopg2-binary
