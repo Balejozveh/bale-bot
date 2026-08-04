@@ -159,15 +159,11 @@ def save_user(chat_id, platform="bale"):
 # ===== Handlers =====
 def handle_start(chat_id):
     save_user(chat_id, "bale")
-    kb = {"inline_keyboard": [
-        [{"text": f"📚 {c['name']} ({c['amount']:,} تومان)", "callback_data": f"course_{k}"}]
-        for k, c in COURSES.items()
-    ]}
-    deadline_lines = "\n".join(f"🔸 {c['name']}: تا {c['deadline']}" for c in COURSES.values())
     send_message(chat_id,
-        "سلام! 👋\nبه بات جمع‌آوری واریزی خوش اومدی.\nاول جزوه‌ای که می‌خوای رو انتخاب کن:\n\n"
-        f"⏳ مهلت واریز:\n{deadline_lines}\n\n⚠️ بعد از مهلت تعیین‌شده، امکان واریز وجود نداره!",
-        kb)
+        "⚠️ دیتابیس موقتاً از کار افتاده!\n\n"
+        "متأسفانه سیستم ثبت واریزی الان در دسترس نیست.\n"
+        "لطفاً کمی بعد دوباره امتحان کنید. 🙏\n\n"
+        "ما در حال رفع مشکل هستیم.")
 
 def handle_course_cb(chat_id, msg_id, cb_id, key, user_id):
     if key not in COURSES:
