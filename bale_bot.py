@@ -18,7 +18,7 @@ API = f"https://tapi.bale.ai/bot{BOT_TOKEN}"
 
 COURSES = {
     "hesaban": {"name": "جزوه حسابان", "amount": 380000, "deadline": "جمعه ۱۶ مرداد — ساعت ۱۸:۰۰"},
-    # هندسه بسته شد (مهلت ۱۲ مرداد ۲۰:۰۰ تمام شد)
+    "hendese": {"name": "جزوه هندسه",  "amount": 280000, "deadline": "شنبه ۱۷ مرداد — ساعت ۲۱:۰۰"},
     "shimi":   {"name": "جزوه شیمی",  "amount": 750000, "deadline": "جمعه ۱۶ مرداد — ساعت ۲۱:۰۰"},
 }
 
