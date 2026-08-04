@@ -124,9 +124,23 @@ def backup_to_github():
         rows = cur.fetchall()
         conn.close()
         content = base64.b64encode(json.dumps([dict(r) for r in rows], ensure_ascii=False, default=str).encode()).decode()
-        payload = json.dumps({"message": f"auto-backup {int(time.time())}", "content": content, "branch": "main"}).encode()
         url = f"https://api.github.com/repos/{GH_REPO}/contents/backup_neon.json"
-        req = urllib.request.Request(url, data=payload, headers={
+        # Get current sha first (required for updating existing file)
+        try:
+            req = urllib.request.Request(url, headers={"Authorization": f"Bearer {GH_TOKEN}"})
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                d = json.loads(resp.read())
+            sha = d.get("sha")
+        except Exception:
+            sha = None
+        payload = {
+            "message": f"auto-backup {int(time.time())}",
+            "content": content,
+            "branch": "main",
+        }
+        if sha:
+            payload["sha"] = sha
+        req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers={
             "Authorization": f"Bearer {GH_TOKEN}",
             "Accept": "application/vnd.github.v3+json",
             "Content-Type": "application/json"}, method="PUT")
