@@ -233,6 +233,14 @@ def handle_receipt(chat_id, file_id):
              {"text": "❌ رد", "callback_data": f"wa_reject:bale:{payment_id}"}]
         ]}
     resp = send_photo(ADMIN_ID, file_id, caption, kb)
+    # store original caption for later edit (so approve/reject keeps user info visible)
+    try:
+        rid = resp.get("result", {}).get("message_id")
+        if rid:
+            PENDING[rid] = {"name": st["name"], "course": st["course_name"], "amount": st["amount"],
+                            "image": image_url, "caption": caption}
+    except Exception:
+        pass
     send_message(chat_id, "✅ رسید دریافت شد!\n\n⏳ در حال بررسی توسط ادمین...\nبعد از تایید، پیام نهایی بهت می‌رسه. صبر کن 🙏")
     user_state.pop(chat_id, None)
 
@@ -258,8 +266,11 @@ def handle_admin_cb(chat_id, msg_id, cb_id, data, from_id):
             with urllib.request.urlopen(req, timeout=25) as resp:
                 d = json.loads(resp.read())
             if d.get("success"):
+                # keep the original caption (all user info) and just append the status line
+                old = PENDING.get(msg_id, {}).get("caption", "")
                 edit_caption(chat_id, msg_id,
-                    ("" ) + f"🆕 واریزی جدید\n\n{'✅ تایید شد!' if status=='approved' else '❌ رد شد'}")
+                    (old + f"\n\n{'✅ تایید شد!' if status=='approved' else '❌ رد شد'}") if old else
+                    (f"🆕 واریزی جدید\n\n{'✅ تایید شد!' if status=='approved' else '❌ رد شد'}"))
             else:
                 answer_cb(cb_id, "⚠️ خطا در ثبت!")
         except Exception as e:
