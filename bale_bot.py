@@ -312,6 +312,10 @@ def main():
                 if text == "/start":
                     handle_start(chat_id)
                 elif m.get("photo"):
+                    # IGNORE photos that come from the bot itself (admin notifications
+                    # sent by Worker with receipt image) — those must NOT start a new order.
+                    if m.get("from", {}).get("is_bot"):
+                        continue
                     file_id = m["photo"][-1]["file_id"]
                     handle_receipt(chat_id, file_id)
                 elif text:
