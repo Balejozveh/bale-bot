@@ -299,7 +299,7 @@ def main():
                 save_user(from_id or chat_id, "bale")
                 if data.startswith("course_"):
                     handle_course_cb(chat_id, msg_id, cq["id"], data[7:], from_id)
-                elif data.startswith(("approve:", "reject:")):
+                elif data.startswith(("approve:", "reject:", "wa_approve:", "wa_reject:")):
                     handle_admin_cb(chat_id, msg_id, cq["id"], data, from_id)
             elif "message" in u:
                 m = u["message"]
