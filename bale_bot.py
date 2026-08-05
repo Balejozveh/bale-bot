@@ -160,7 +160,7 @@ def save_user(chat_id, platform="bale"):
 def handle_start(chat_id):
     save_user(chat_id, "bale")
     kb = {"inline_keyboard": [
-        [{"text": "🌐 ثبت سفارش در وب", "url": "https://variyabi-miniapp-production.up.railway.app/"}],
+        [{"text": "🌐 ثبت سفارش در وب", "url": "https://ble.ir/jozveh_r1_bot?startapp"}],
         [{"text": "📚 جزوه حسابان (380000 تومان)", "callback_data": "course_hesaban"}],
         [{"text": "📚 جزوه هندسه (280000 تومان)", "callback_data": "course_hendese"}],
         [{"text": "📚 جزوه شیمی (750000 تومان)", "callback_data": "course_shimi"}]
