@@ -231,9 +231,11 @@ def handle_admin_cb(chat_id, msg_id, cb_id, data, from_id):
         return
     answer_cb(cb_id)
 
-    # ── new webapp buttons: wa_approve:<payment_id> / wa_reject:<payment_id> ──
+    # ── new webapp buttons: wa_approve:<platform>:<payment_id> / wa_reject:<platform>:<payment_id> ──
     if data.startswith(("wa_approve:", "wa_reject:")):
-        action, pay_id = data.split(":")
+        parts = data.split(":")
+        action = parts[0]
+        pay_id = parts[2] if len(parts) > 2 else parts[1]  # wa_approve:telegram:47 → 47
         status = "approved" if action == "wa_approve" else "cancelled"
         try:
             payload = json.dumps({"id": int(pay_id), "status": status}).encode()
