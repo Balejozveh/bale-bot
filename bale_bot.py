@@ -113,7 +113,7 @@ def save_to_d1(name, course_name, amount, date, time, bale_id, image_url=None):
     bale = f"'{str(bale_id).replace(chr(39), chr(39)+chr(39))}'" if bale_id is not None else "NULL"
     sql = ("INSERT INTO payments (name, amount, date, time, image_url, course, tg_id, bale_id) "
            f"VALUES ('{safe_name}', {amount}, '{date}', '{time}', {img}, "
-           f"'{course_name.replace(chr(39), chr(39)+chr(39))}', NULL, {bale})")
+           f"'{course_name.replace(chr(39), chr(39)+chr(39))}', NULL, {bale}) RETURNING id")
     payload = json.dumps({"sql": sql}).encode()
     url = f"https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT}/d1/database/{CF_DB}/raw"
     req = urllib.request.Request(url, data=payload, headers={
@@ -122,7 +122,10 @@ def save_to_d1(name, course_name, amount, date, time, bale_id, image_url=None):
     try:
         with urllib.request.urlopen(req, timeout=25) as resp:
             d = json.loads(resp.read())
-            return bool(d.get("success"))
+            rows = d.get("result") and d["result"][0].get("results")
+            if rows and rows.get("rows"):
+                return rows["rows"][0][0]  # the new payment id
+            return False
     except Exception as e:
         log.error("D1 save failed: %s", e)
         return False
@@ -213,15 +216,23 @@ def handle_receipt(chat_id, file_id):
     caption = (f"🆕 واریزی جدید (از بات بله)\n\n📚 درس: {st['course_name']}\n"
         f"👤 نام: {st['name']}\n💵 مبلغ: {st['amount']:,} تومان\n📅 تاریخ: {date_str}\n"
         f"⏰ ساعت: {time_str}\n🆔 بله: {chat_id}"
-        + (f"\n🖼️ لینک رسید: {image_url}" if image_url else "\n⚠️ آپلود رسید ناموفق بود")
-        + "\n\n🔐 برای تأیید/رد از پنل ادمین اقدام کن: variyabi-api.edis-edfamily.workers.dev/admin")
-    # فقط خبر — بدون دکمه تأیید/رد
-    resp = send_photo(ADMIN_ID, file_id, caption)
-    # ثبت مستقیم در D1 با وضعیت pending
+        + (f"\n🖼️ لینک رسید: {image_url}" if image_url else "\n⚠️ آپلود رسید ناموفق بود"))
+    # ثبت مستقیم در D1 → payment id برای دکمه ها
+    payment_id = None
     try:
-        save_to_d1(st["name"], st["course_name"], st["amount"], date_str, time_str, None, image_url)
+        payment_id = save_to_d1(st["name"], st["course_name"], st["amount"], date_str, time_str, str(chat_id), image_url)
+        if payment_id:
+            log.info("Saved to D1 (pending) id=%s bale=%s", payment_id, chat_id)
     except Exception as e:
         log.error("D1 save failed: %s", e)
+    # دکمه های تایید/رد با id جدید
+    kb = None
+    if payment_id:
+        kb = {"inline_keyboard": [
+            [{"text": "✅ تایید", "callback_data": f"wa_approve:bale:{payment_id}"},
+             {"text": "❌ رد", "callback_data": f"wa_reject:bale:{payment_id}"}]
+        ]}
+    resp = send_photo(ADMIN_ID, file_id, caption, kb)
     send_message(chat_id, "✅ رسید دریافت شد!\n\n⏳ در حال بررسی توسط ادمین...\nبعد از تایید، پیام نهایی بهت می‌رسه. صبر کن 🙏")
     user_state.pop(chat_id, None)
 
