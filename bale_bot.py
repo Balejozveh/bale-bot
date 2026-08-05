@@ -208,22 +208,18 @@ def handle_receipt(chat_id, file_id):
         data = download_file(fp)
         if data:
             image_url = upload_to_github(data, f"receipt_{int(time.time())}.jpg")
-    kb = {"inline_keyboard": [[
-        {"text": "✅ تایید", "callback_data": f"approve:{chat_id}"},
-        {"text": "❌ رد", "callback_data": f"reject:{chat_id}"},
-    ]]}
-    caption = (f"🆕 واریزی جدید منتظر تایید\n\n📚 درس: {st['course_name']}\n"
+    caption = (f"🆕 واریزی جدید (از بات بله)\n\n📚 درس: {st['course_name']}\n"
         f"👤 نام: {st['name']}\n💵 مبلغ: {st['amount']:,} تومان\n📅 تاریخ: {date_str}\n"
         f"⏰ ساعت: {time_str}\n🆔 بله: {chat_id}"
-        + (f"\n🖼️ لینک رسید: {image_url}" if image_url else "\n⚠️ آپلود رسید ناموفق بود"))
-    resp = send_photo(ADMIN_ID, file_id, caption, kb)
-    # Store payment info keyed by admin message_id for approve/reject
-    if resp.get("ok"):
-        admin_msg_id = resp["result"]["message_id"]
-        PENDING[admin_msg_id] = {
-            "name": st["name"], "course": st["course_name"],
-            "amount": st["amount"], "image": image_url,
-        }
+        + (f"\n🖼️ لینک رسید: {image_url}" if image_url else "\n⚠️ آپلود رسید ناموفق بود")
+        + "\n\n🔐 برای تأیید/رد از پنل ادمین اقدام کن: variyabi-api.edis-edfamily.workers.dev/admin")
+    # فقط خبر — بدون دکمه تأیید/رد
+    resp = send_photo(ADMIN_ID, file_id, caption)
+    # ثبت مستقیم در D1 با وضعیت pending
+    try:
+        save_to_d1(st["name"], st["course_name"], st["amount"], date_str, time_str, None, image_url)
+    except Exception as e:
+        log.error("D1 save failed: %s", e)
     send_message(chat_id, "✅ رسید دریافت شد!\n\n⏳ در حال بررسی توسط ادمین...\nبعد از تایید، پیام نهایی بهت می‌رسه. صبر کن 🙏")
     user_state.pop(chat_id, None)
 
