@@ -229,8 +229,32 @@ def handle_admin_cb(chat_id, msg_id, cb_id, data, from_id):
     if from_id != ADMIN_ID:
         answer_cb(cb_id, "❌ شما ادمین نیستید!")
         return
-    action, target = data.split(":")
     answer_cb(cb_id)
+
+    # ── new webapp buttons: wa_approve:<payment_id> / wa_reject:<payment_id> ──
+    if data.startswith(("wa_approve:", "wa_reject:")):
+        action, pay_id = data.split(":")
+        status = "approved" if action == "wa_approve" else "cancelled"
+        try:
+            payload = json.dumps({"id": int(pay_id), "status": status}).encode()
+            req = urllib.request.Request(
+                "https://variyabi-api.edis-edfamily.workers.dev/api/webapp/status",
+                data=payload,
+                headers={"Content-Type": "application/json", "User-Agent": "variyabi-bale"},
+                method="POST")
+            with urllib.request.urlopen(req, timeout=25) as resp:
+                d = json.loads(resp.read())
+            if d.get("success"):
+                edit_caption(chat_id, msg_id,
+                    ("" ) + f"🆕 واریزی جدید\n\n{'✅ تایید شد!' if status=='approved' else '❌ رد شد'}")
+            else:
+                answer_cb(cb_id, "⚠️ خطا در ثبت!")
+        except Exception as e:
+            log.error("wa status failed: %s", e)
+            answer_cb(cb_id, "⚠️ خطا در ارتباط")
+        return
+
+    action, target = data.split(":")
     m = api_call("getChat", {"chat_id": target}) if False else None
     # Parse caption from stored message: we need caption — fetch from our memory
     # Simplest: store last pending payment globally
