@@ -160,14 +160,13 @@ def save_user(chat_id, platform="bale"):
 def handle_start(chat_id):
     save_user(chat_id, "bale")
     kb = {"inline_keyboard": [
-        [{"text": "🌐 ثبت سفارش در وب (سریع‌تر)", "url": "https://ble.ir/jozveh_r1_bot?startapp"}],
         [{"text": "📚 جزوه حسابان (380000 تومان)", "callback_data": "course_hesaban"}],
         [{"text": "📚 جزوه هندسه (280000 تومان)", "callback_data": "course_hendese"}],
         [{"text": "📚 جزوه شیمی (750000 تومان)", "callback_data": "course_shimi"}]
     ]}
     deadline_lines = "\n".join(f"🔸 {c['name']}: تا {c['deadline']}" for c in COURSES.values())
     send_message(chat_id,
-        "سلام! 👋\nبه بات جمع‌آوری واریزی خوش اومدی.\nمی‌تونی از دکمه «ثبت سفارش در وب» سریع‌تر سفارش بدی، یا از همین‌جا ادامه بدی:\n\n"
+        "سلام! 👋\nبه بات جمع‌آوری واریزی خوش اومدی.\nاز همین‌جا جزوه مورد نظرت رو انتخاب کن:\n\n"
         f"⏳ مهلت واریز:\n{deadline_lines}\n\n⚠️ بعد از مهلت تعیین‌شده، امکان واریز وجود نداره!",
         kb)
 
