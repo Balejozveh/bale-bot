@@ -18,7 +18,6 @@ API = f"https://tapi.bale.ai/bot{BOT_TOKEN}"
 
 COURSES = {
     "hendese": {"name": "جزوه هندسه",  "amount": 280000, "deadline": "شنبه ۱۷ مرداد — ساعت ۲۱:۰۰"},
-    "shimi":   {"name": "جزوه شیمی",  "amount": 750000, "deadline": "جمعه ۱۶ مرداد — ساعت ۲۱:۰۰"},
 }
 
 # ===== Helpers =====
@@ -163,8 +162,7 @@ def handle_start(chat_id):
     save_user(chat_id, "bale")
     kb = {"inline_keyboard": [
         [{"text": "🌐 ثبت سفارش در وب", "url": "https://ble.ir/jozveh_r1_bot?startapp"}],
-        [{"text": "📚 جزوه هندسه (280000 تومان)", "callback_data": "course_hendese"}],
-        [{"text": "📚 جزوه شیمی (750000 تومان)", "callback_data": "course_shimi"}]
+        [{"text": "📚 جزوه هندسه (280000 تومان)", "callback_data": "course_hendese"}]
     ]}
     deadline_lines = "\n".join(f"🔸 {c['name']}: تا {c['deadline']}" for c in COURSES.values())
     send_message(chat_id,
