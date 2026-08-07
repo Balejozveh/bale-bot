@@ -17,7 +17,6 @@ CF_DB = os.environ.get("CF_DB", "")
 API = f"https://tapi.bale.ai/bot{BOT_TOKEN}"
 
 COURSES = {
-    "hesaban": {"name": "جزوه حسابان", "amount": 380000, "deadline": "جمعه ۱۶ مرداد — ساعت ۱۸:۰۰"},
     "hendese": {"name": "جزوه هندسه",  "amount": 280000, "deadline": "شنبه ۱۷ مرداد — ساعت ۲۱:۰۰"},
     "shimi":   {"name": "جزوه شیمی",  "amount": 750000, "deadline": "جمعه ۱۶ مرداد — ساعت ۲۱:۰۰"},
 }
@@ -164,7 +163,6 @@ def handle_start(chat_id):
     save_user(chat_id, "bale")
     kb = {"inline_keyboard": [
         [{"text": "🌐 ثبت سفارش در وب", "url": "https://ble.ir/jozveh_r1_bot?startapp"}],
-        [{"text": "📚 جزوه حسابان (380000 تومان)", "callback_data": "course_hesaban"}],
         [{"text": "📚 جزوه هندسه (280000 تومان)", "callback_data": "course_hendese"}],
         [{"text": "📚 جزوه شیمی (750000 تومان)", "callback_data": "course_shimi"}]
     ]}
