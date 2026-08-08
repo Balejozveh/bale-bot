@@ -17,7 +17,6 @@ CF_DB = os.environ.get("CF_DB", "")
 API = f"https://tapi.bale.ai/bot{BOT_TOKEN}"
 
 COURSES = {
-    "hendese": {"name": "جزوه هندسه",  "amount": 280000, "deadline": "شنبه ۱۷ مرداد — ساعت ۲۱:۰۰"},
 }
 
 # ===== Helpers =====
@@ -160,15 +159,11 @@ def save_user(chat_id, platform="bale"):
 # ===== Handlers =====
 def handle_start(chat_id):
     save_user(chat_id, "bale")
-    kb = {"inline_keyboard": [
-        [{"text": "🌐 ثبت سفارش در وب", "url": "https://ble.ir/jozveh_r1_bot?startapp"}],
-        [{"text": "📚 جزوه هندسه (280000 تومان)", "callback_data": "course_hendese"}]
-    ]}
-    deadline_lines = "\n".join(f"🔸 {c['name']}: تا {c['deadline']}" for c in COURSES.values())
     send_message(chat_id,
-        "سلام! 👋\nبه بات جمع‌آوری واریزی خوش اومدی.\nمی‌تونی از «ثبت سفارش در وب» سریع‌تر سفارش بدی، یا از همین‌جا ادامه بدی:\n\n"
-        f"⏳ مهلت واریز:\n{deadline_lines}\n\n⚠️ بعد از مهلت تعیین‌شده، امکان واریز وجود نداره!",
-        kb)
+        "سلام! 👋\nبه بات جمع‌آوری واریزی خوش اومدی.\n\n"
+        "⚠️ ربات فعلاً غیر فعال است.\n"
+        "جزوه‌های این دوره به پایان رسیده و فروش بسته شده.\n"
+        "برای اطلاع از دوره‌های بعدی، همین‌جا منتظر باش 🙏")
 
 def handle_course_cb(chat_id, msg_id, cb_id, key, user_id):
     if key not in COURSES:
